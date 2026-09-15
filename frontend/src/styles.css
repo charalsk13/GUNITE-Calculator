@@ -597,6 +597,249 @@ header p {
   }
 }
 
+/* Calculation flow, grouped inputs, and full-width output */
+.calculation-flow {
+  max-width: 1320px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #dce4ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #74849a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.flow-node {
+  flex: 1;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.flow-node span {
+  color: #a0adbd;
+  font-size: 9px;
+}
+
+.flow-node.active {
+  background: #eef4ff;
+  color: #315fae;
+}
+
+.flow-node.primary {
+  background: #1d5fd2;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(29, 95, 210, 0.2);
+}
+
+.flow-node.primary span {
+  color: #c8dcff;
+}
+
+.flow-arrow {
+  color: #a9b5c4;
+  font-size: 16px;
+}
+
+.input-group {
+  padding: 15px 0 4px;
+  border-top: 1px solid #e8edf3;
+}
+
+.input-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.input-group h3 {
+  margin-bottom: 5px;
+  color: #40546d;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.input-help,
+.section-intro {
+  margin: 0 0 13px;
+  color: #7a8b9f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.result-workspace {
+  display: block;
+  min-width: 0;
+}
+
+.result-card {
+  width: 100%;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+
+.results-section {
+  margin: 0 0 14px;
+}
+
+.section-kicker {
+  margin-bottom: 5px;
+  color: #71839a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.results-section h3,
+.order-heading h3 {
+  margin: 0;
+  color: #283d58;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.results-section .section-intro,
+.order-heading .section-intro {
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+.calculation-details {
+  margin-bottom: 22px;
+  padding: 7px 0;
+  border: 1px solid #e2e9f1;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.order-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5ebf2;
+}
+
+.order-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+
+.order-count {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid #d9e4f0;
+  border-radius: 999px;
+  color: #57708f;
+  background: #f6f9fd;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.order-table {
+  border: 1px solid #dfe7f0;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.order-table-head,
+.order-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(150px, 1fr) minmax(90px, auto);
+  align-items: center;
+  gap: 14px;
+}
+
+.order-table-head {
+  min-height: 35px;
+  padding: 0 13px;
+  background: #f1f5f9;
+  color: #71839a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.order-table-head span:last-child {
+  text-align: right;
+}
+
+.order-row {
+  min-height: 54px;
+  padding: 11px 13px;
+  border: 0;
+  border-top: 1px solid #e6ecf3;
+  background: #fff;
+}
+
+.order-row b {
+  font-size: 11px;
+}
+
+.order-row small {
+  margin-top: 0;
+  color: #72849b;
+  font-size: 10px;
+}
+
+.order-row strong {
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .calculation-flow {
+    align-items: stretch;
+    gap: 3px;
+  }
+
+  .flow-arrow {
+    display: none;
+  }
+
+  .flow-node {
+    min-height: 48px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 3px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .order-table-head,
+  .order-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .result-card {
+    grid-column: auto;
+  }
+
+  .order-table-head span:nth-child(2),
+  .order-row small {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .order-table-head span:last-child,
+  .order-row strong {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
 .landing {
   min-height: 100vh;
   padding: 34px 6vw 28px;

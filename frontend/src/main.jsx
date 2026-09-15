@@ -1,7 +1,9 @@
-function Result({ result, form }) {
+function Result({ result, form, activeStage, onContinue, reportPayload }) {
   const [drawingType, setDrawingType] = useState("section");
   const [drawingUrl, setDrawingUrl] = useState("");
   const [zoom, setZoom] = useState(1);
+  const [exporting, setExporting] = useState("");
+  const [exportError, setExportError] = useState("");
   const viewerRef = React.useRef(null);
   const labels = {
     technical: "Τεχνικό φύλλο",
@@ -9,7 +11,7 @@ function Result({ result, form }) {
     vertical: "Κατακόρυφη όψη",
   };
   useEffect(() => {
-    if (!result?.result) return;
+    if (activeStage !== 3 || !result?.result) return;
     let active = true;
     setDrawingUrl("");
     setZoom(1);
@@ -27,6 +29,21 @@ function Result({ result, form }) {
       active = false;
     };
   }, [drawingType, result, form]);
+  const exportReport = async (type, filename) => {
+    setExporting(type);
+    setExportError("");
+    try {
+      await download(`/api/project/report/${type}`, filename, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportPayload),
+      });
+    } catch (error) {
+      setExportError(error.message || "Η εξαγωγή απέτυχε.");
+    } finally {
+      setExporting("");
+    }
+  };
   const r = result?.result;
   if (!r)
     return (
@@ -37,8 +54,10 @@ function Result({ result, form }) {
       </div>
     );
   return (
-    <div className="workspace">
-      <div className="results card">
+    <div className="workspace result-workspace">
+      <div className="results card result-card">
+        {activeStage === 3 && (
+          <>
         <div className="card-head">
           <div>
             <span>CALCULATION OUTPUT</span>
@@ -122,7 +141,12 @@ function Result({ result, form }) {
             )}
           </div>
         </div>
-        <div className="result-table">
+        <section className="results-section">
+          <div className="section-kicker">CALCULATION DETAILS</div>
+          <h3>Αποτελέσματα υπολογισμού</h3>
+          <p className="section-intro">Οι τιμές που προέκυψαν από τα δεδομένα του στοιχείου και του μανδύα.</p>
+        </section>
+        <div className="result-table calculation-details">
           {(result.result_table || []).map((row, i) => (
             <Row key={i} a={row["Κατηγορία"]} b={row["Τιμή"]} />
           ))}
@@ -138,18 +162,50 @@ function Result({ result, form }) {
             </button>
           ))}
         </div>
-        <h3>Παραγγελία</h3>
-        {(result.order_rows || []).map((row, i) => (
-          <div className="order-row" key={i}>
+        <button className="tool full" onClick={onContinue}>
+          Συνέχεια → Παραγγελία
+        </button>
+          </>
+        )}
+        {activeStage === 4 && (
+        <section className="order-section">
+          <div className="section-kicker">BILL OF MATERIALS</div>
+          <div className="order-heading">
             <div>
-              <b>{row.Περιγραφή}</b>
-              <small>
-                {row.Τύπος} · {row.Θέση}
-              </small>
+              <h3>Παραγγελία υλικών</h3>
+              <p className="section-intro">Τα υλικά και οι ποσότητες που προκύπτουν για την κατασκευή.</p>
             </div>
-            <strong>{row.Τεμάχια} τεμ.</strong>
+            <span className="order-count">{(result.order_rows || []).length} γραμμές</span>
           </div>
-        ))}
+          <div className="order-table">
+            <div className="order-table-head"><span>Περιγραφή</span><span>Προδιαγραφή / θέση</span><span>Ποσότητα</span></div>
+            {(result.order_rows || []).map((row, i) => (
+              <div className="order-row" key={i}>
+                <b>{row.Περιγραφή}</b>
+                <small>{row.Τύπος} · {row.Θέση}</small>
+                <strong>{row.Τεμάχια} τεμ.</strong>
+              </div>
+            ))}
+          </div>
+          <div className="report-actions">
+            <button
+              className="tool"
+              onClick={() => exportReport("excel", "gunite-project.xlsx")}
+              disabled={Boolean(exporting)}
+            >
+              <Download size={16} /> {exporting === "excel" ? "Εξαγωγή Excel…" : "Εξαγωγή Excel"}
+            </button>
+            <button
+              className="tool"
+              onClick={() => exportReport("pdf", "gunite-project.pdf")}
+              disabled={Boolean(exporting)}
+            >
+              <Download size={16} /> {exporting === "pdf" ? "Εξαγωγή PDF…" : "Εξαγωγή PDF"}
+            </button>
+          </div>
+          {exportError && <div className="error">{exportError}</div>}
+        </section>
+        )}
       </div>
     </div>
   );
@@ -330,7 +386,8 @@ function App() {
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     [editingIndex, setEditingIndex] = useState(null),
-    [showHome, setShowHome] = useState(true);
+    [showHome, setShowHome] = useState(true),
+    [activeStage, setActiveStage] = useState(2);
   const [project, setProject] = useState({
     name: "Νέο έργο",
     id: null,
@@ -411,13 +468,13 @@ function App() {
     setLoading(true);
     setError("");
     try {
-      setResult(
-        await api("/api/calculate", {
+      const nextResult = await api("/api/calculate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(supplied || form),
-        }),
-      );
+        });
+      setResult(nextResult);
+      setActiveStage(3);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -643,6 +700,9 @@ function App() {
             result={result}
             addElement={addElement}
             floors={project.floors}
+            project={project}
+            activeStage={activeStage}
+            setActiveStage={setActiveStage}
           />
         ) : view === "elements" ? (
           <Elements
@@ -672,6 +732,9 @@ function Calculation({
   result,
   addElement,
   floors,
+  project,
+  activeStage,
+  setActiveStage,
 }) {
   const r = result?.result;
   const availableFloors = floors || window.__guniteFloors || [];
@@ -684,16 +747,14 @@ function Calculation({
   };
   return (
     <>
-      <div className="steps">
-        <div className="step current">
-          01 <span>Γεωμετρία</span>
-        </div>
-        <div className="step current">
-          02 <span>Οπλισμός</span>
-        </div>
-        <div className="step">
-          03 <span>Λεπτομέρειες</span>
-        </div>
+      <div className="calculation-flow" aria-label="Ροή υπολογισμού">
+        <div className={activeStage > 1 ? "flow-node active" : "flow-node primary"}><span>01</span> Εισαγωγή δεδομένων</div>
+        <div className="flow-arrow">→</div>
+        <div className={activeStage > 2 ? "flow-node active" : activeStage === 2 ? "flow-node primary" : "flow-node"}><span>02</span> Υπολογισμός</div>
+        <div className="flow-arrow">→</div>
+        <div className={activeStage > 3 ? "flow-node active" : activeStage === 3 ? "flow-node primary" : "flow-node"}><span>03</span> Αποτελέσματα</div>
+        <div className="flow-arrow">→</div>
+        <div className={activeStage === 4 ? "flow-node primary" : "flow-node"}><span>04</span> Παραγγελία</div>
       </div>
       <section className="layout">
         <div className="panel input-panel">
@@ -725,7 +786,9 @@ function Calculation({
           </div>
           {tab === "geometry" && (
             <div className="section">
-              <h3>Στοιχείο</h3>
+              <div className="input-group existing-group">
+                <h3>Στοιχεία υφιστάμενου στοιχείου</h3>
+                <p className="input-help">Τα γεωμετρικά δεδομένα και η μορφή του υφιστάμενου στοιχείου.</p>
               <label className="field">
                 <span>Όνομα</span>
                 <input
@@ -766,6 +829,10 @@ function Calculation({
                   onChange={(v) => set("y2b", v)}
                 />
               </div>
+              </div>
+              <div className="input-group cover-group">
+                <h3>Στοιχεία μανδύα</h3>
+                <p className="input-help">Οι διαστάσεις και οι κατασκευαστικές παράμετροι του μανδύα.</p>
               <div className="grid2">
                 <Num
                   label="tgun (cm)"
@@ -823,11 +890,13 @@ function Calculation({
                   </button>
                 </div>
               )}
+              </div>
             </div>
           )}
           {tab === "steel" && (
             <div className="section">
               <h3>Οπλισμός</h3>
+              <p className="input-help">Οι διάμετροι, οι αποστάσεις και η διάταξη του οπλισμού.</p>
               <div className="grid2">
                 <Num
                   label="Φd (mm)"
@@ -889,6 +958,8 @@ function Calculation({
           )}
           {tab === "beam" && (
             <div className="section">
+              <h3>Λεπτομέρειες κατασκευής</h3>
+              <p className="input-help">Προαιρετικές παράμετροι για δοκό ή κατασκευαστικό εμπόδιο.</p>
               <div className="toggle">
                 <b>Ενεργοποίηση δοκού / εμποδίου</b>
                 <input
@@ -940,7 +1011,19 @@ function Calculation({
             </button>
           )}
         </div>
-        <Result result={result} form={form} />
+        {activeStage >= 3 && (
+          <Result
+            result={result}
+            form={form}
+            activeStage={activeStage}
+            onContinue={() => setActiveStage(4)}
+            reportPayload={{
+              name: project.name,
+              floors: project.floors,
+              elements: [result.input],
+            }}
+          />
+        )}
       </section>
     </>
   );
