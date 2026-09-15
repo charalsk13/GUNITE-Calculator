@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+pandas
+openpyxl
+matplotlib
+reportlab
+python-docx
