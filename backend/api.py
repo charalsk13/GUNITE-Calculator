@@ -3,8 +3,6 @@ from dataclasses import asdict
 from typing import Any
 import sys
 from io import BytesIO
-import json
-import tempfile
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
@@ -17,8 +15,6 @@ sys.path.insert(0, str(ROOT))
 
 from gunite_calculator import GuniteInput, BeamObstruction, calculate, order_rows, result_table  # noqa: E402
 import catalog  # noqa: E402
-import database  # noqa: E402
-import project_io  # noqa: E402
 import drawing  # noqa: E402
 from pdf_report import create_project_pdf  # noqa: E402
 
@@ -65,10 +61,6 @@ class ProjectModel(BaseModel):
     elements: list[dict[str, Any]] = Field(default_factory=list)
 
 
-class ProjectSaveModel(ProjectModel):
-    id: int | None = None
-
-
 def make_input(m: CalcModel) -> GuniteInput:
     return GuniteInput(
         name=m.name, x1b=m.x1b, x2b=m.x2b, y1b=m.y1b, y2b=m.y2b,
@@ -101,27 +93,6 @@ def raw_element_record(record: dict[str, Any]) -> dict[str, Any]:
                 raw[key] = record[key]
         return raw
     return record
-
-
-def storage_elements(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Convert API records to the legacy database's {input, result} shape."""
-    stored = []
-    for record in records:
-        raw = raw_element_record(record)
-        model = CalcModel.model_validate(raw)
-        calculated = calculate_payload(model)
-        stored.append({
-            "input": make_input(model),
-            "result": type("StoredResult", (), {"case": calculated["result"]["case"]})(),
-            "order_rows": calculated["order_rows"],
-            "floor_name": raw.get("floor_name", "Στάθμη 1"),
-            "study_dimensions": raw.get("study_dimensions", ""),
-            "remarks": raw.get("remarks", ""),
-            "designer_remarks": raw.get("designer_remarks", ""),
-            "length_cm": raw.get("length_cm", model.x1b + model.x2b),
-            "width_cm": raw.get("width_cm", model.y1b + model.y2b),
-        })
-    return stored
 
 
 def project_elements_payload(project: dict[str, Any]) -> list[dict[str, Any]]:
@@ -180,65 +151,6 @@ def calculate_api(model: CalcModel):
         return calculate_payload(model)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@app.get("/api/projects")
-def projects_api():
-    return {"projects": database.list_projects()}
-
-
-@app.get("/api/projects/{project_id}")
-def project_api(project_id: int):
-    project = database.load_project(project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Το έργο δεν βρέθηκε.")
-    try:
-        return {**project, "elements": project_elements_payload(project)}
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@app.post("/api/projects")
-def save_project_api(model: ProjectSaveModel):
-    try:
-        raw_elements = storage_elements(model.elements)
-        project_id = database.save_project(
-            model.name, raw_elements, project_id=model.id, floors=model.floors
-        )
-        project = database.load_project(project_id)
-        return {**project, "elements": project_elements_payload(project)}
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@app.delete("/api/projects/{project_id}")
-def delete_project_api(project_id: int):
-    database.delete_project(project_id)
-    return {"ok": True}
-
-
-@app.post("/api/projects/import")
-def import_project_api(model: ProjectModel):
-    try:
-        project_id = database.save_project(model.name, storage_elements(model.elements), floors=model.floors)
-        project = database.load_project(project_id)
-        return {**project, "elements": project_elements_payload(project)}
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@app.get("/api/projects/{project_id}/export")
-def export_project_api(project_id: int):
-    with tempfile.NamedTemporaryFile(suffix=".gunite", delete=False) as tmp:
-        target = Path(tmp.name)
-    try:
-        project_io.export_project(project_id, target)
-        data = target.read_bytes()
-    except Exception as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    finally:
-        target.unlink(missing_ok=True)
-    return Response(data, media_type="application/json", headers={"Content-Disposition": 'attachment; filename="gunite-project.gunite"'})
 
 
 @app.post("/api/project/report/{report_type}")
