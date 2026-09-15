@@ -12,6 +12,18 @@ BASE = dict(
 for option in ("1a", "1b"):
     inp = GuniteInput(**BASE, development_option=option)
     r = calculate(inp)
+    assert round(r.d_cm, 1) == 5.0
+    assert (round(r.gunite_width_m * 100, 1), round(r.gunite_height_m * 100, 1)) == (60.0, 50.0)
+    assert round(r.p_development.geometric_required_m * 100, 1) == 100.0
+    assert round(r.p_development.required_m * 100, 1) == 112.0
+    assert r.catalog_name == "120/10/150"
+    expected_segments = (
+        "4.0 + 6.0 + 22.5 + 55.0 + 22.5 + 6.0 + 4.0"
+        if option == "1a"
+        else "4.0 + 6.0 + 27.5 + 45.0 + 27.5 + 6.0 + 4.0"
+    )
+    assert r.p_development.final_segments_cm == expected_segments
+    assert r.beam_result is None
     print(f"\nΠερίπτωση {option}")
     print(f"Υφιστάμενη: {r.existing_width_m*100:.1f} x {r.existing_height_m*100:.1f} cm")
     print(f"Gunite: {r.gunite_width_m*100:.1f} x {r.gunite_height_m*100:.1f} cm")

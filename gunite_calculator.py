@@ -477,9 +477,8 @@ def calculate(inp: GuniteInput) -> GuniteResult:
     main_len = inp.floor_height_m + inp.waiting_m
     rounded_main_len = round_up_to_step(main_len, 0.05)
     overlap_len = inp.overlap_factor * inp.fd_mm / 1000.0
-    # Apply the validated beam/obstruction rules when the input explicitly
-    # enables them. The drawing and order layers consume this same result.
-    beam_result = calculate_beam_result(inp, total_bars, overlap_len)
+    # Beam/obstruction rules remain on hold until a complete source rule is supplied.
+    beam_result = None
     prem = calculate_premetrisi(inp, case, x1g, x2g, y1g, y2g)
 
     group_diams = longitudinal_group_diameters(inp)
