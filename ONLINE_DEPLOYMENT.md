@@ -53,7 +53,7 @@ VITE_API_URL=https://YOUR-RENDER-SERVICE.onrender.com
 
 The frontend reads this value at build time. Redeploy Vercel after adding or changing it.
 
-This repository also contains a root `vercel.json` fallback. If the Vercel project currently shows `Root Directory: ./`, it will still run the Vite build from `frontend/`. The preferred dashboard setting remains `Root Directory: frontend`; in that mode use `npm run build` and output directory `dist`.
+This repository contains both a root `vercel.json` fallback and `frontend/vercel.json`. If the Vercel project currently shows `Root Directory: ./`, the root configuration runs the Vite build from `frontend/`. With the preferred `Root Directory: frontend`, the frontend configuration uses `npm run build` and output directory `dist`.
 
 Do not configure Vercel as a Python deployment for this setup. In particular, do not use a root-level `pyproject.toml` entrypoint for the frontend project: that would make Vercel inspect the legacy `app.py` path again. The FastAPI entry point belongs to Render and is `backend/api.py`, variable `app`.
 
