@@ -1,18 +1,74 @@
 # GUNITE Calculator — Online v8
 
 ## Changes in v8
-- Project sidebar is organized as a tree: Project → Levels → Elements.
-- Each level has global defaults for floor height, tgun, a1 and a2.
-- Add level / add element / edit element / remove element controls.
-- Element section input is now total X length and total Y width, with 3-decimal entry.
-- Φd is a fixed engineering selection: 8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32 mm.
-- dh (Hilti) is visibly disabled for 4-sided jackets and is not used by the 4-sided formulas.
-- Longitudinal reinforcement can be differentiated by geometric group: corners, X-side bars, Y-side bars.
-- Section drawing reflects the selected diameters by group.
-- Beam/obstruction calculation remains ON HOLD and does not execute unsupported rules.
-- Excel merged-cell error was fixed.
 
 ## Deploy
-1. Replace the files in the GitHub repository with this ZIP's contents.
-2. Keep `app.py` as the Streamlit main file.
-3. Streamlit Community Cloud will redeploy after the commit.
+
+# Online deployment
+
+The modern application is deployed as two services:
+
+```text
+Vercel  -> frontend/ (Vite + React)
+Render  -> backend/api.py (FastAPI)
+```
+
+The legacy `app.py` Streamlit application remains available for local use, but it is not the Vercel entry point.
+
+## 1. Deploy the backend on Render
+
+Create a new **Web Service** from the GitHub repository, or use the repository's `render.yaml` blueprint.
+
+The important settings are:
+
+```text
+Runtime:       Python
+Build command: pip install -r requirements-modern.txt
+Start command: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+Health check:  /api/health
+```
+
+After deployment, verify that this URL returns a healthy response:
+
+```text
+https://YOUR-RENDER-SERVICE.onrender.com/api/health
+```
+
+## 2. Deploy the frontend on Vercel
+
+Create a Vercel project from the same repository and set:
+
+```text
+Root Directory:   frontend
+Framework Preset: Vite
+Build command:    npm run build
+Output directory: dist
+```
+
+Add this Vercel environment variable for the production environment:
+
+```text
+VITE_API_URL=https://YOUR-RENDER-SERVICE.onrender.com
+```
+
+The frontend reads this value at build time. Redeploy Vercel after adding or changing it.
+
+Do not configure Vercel as a Python deployment for this setup. In particular, do not use a root-level `pyproject.toml` entrypoint for the frontend project: that would make Vercel inspect the legacy `app.py` path again. The FastAPI entry point belongs to Render and is `backend/api.py`, variable `app`.
+
+## Local development
+
+Backend:
+
+```text
+uvicorn backend.api:app --reload --port 8000
+```
+
+Frontend:
+
+```text
+cd frontend
+npm install
+npm run dev
+```
+
+Without `VITE_API_URL`, the frontend uses `http://127.0.0.1:8000` for local development.

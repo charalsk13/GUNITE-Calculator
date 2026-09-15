@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: gunite-api
+    runtime: python
+    rootDir: .
+    buildCommand: pip install -r requirements-modern.txt
+    startCommand: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
